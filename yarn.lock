@@ -792,7 +792,7 @@ __metadata:
     vite-plugin-dts: "npm:^4.5.1"
     vitest: "npm:^3.0.7"
   peerDependencies:
-    "@types/node": ">=20.17"
+    "@types/node": ">=20"
   peerDependenciesMeta:
     "@types/node":
       optional: true
