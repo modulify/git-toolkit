@@ -48,6 +48,8 @@ describe('Client', () => {
     fs.mkdirSync(resolve(cwd, 'git-templates'))
 
     exec('git init --template=./git-templates --initial-branch=main')
+    exec('git config user.name "Tester"')
+    exec('git config user.email "tester.modulify@gmail.com"')
 
     for (let i = 0; i < 20; i++) {
       const type = commitTypes[Math.round(Math.random() * (commitTypes.length - 1))]
