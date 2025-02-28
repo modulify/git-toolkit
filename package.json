@@ -23,6 +23,7 @@
   "files": [
     "dist",
     "types",
+    "LICENSE.md",
     "README.md"
   ],
   "types": "dist/index.d.ts",
