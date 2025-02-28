@@ -18,7 +18,9 @@
       "import": "./dist/*.mjs",
       "require": "./dist/*.cjs",
       "default": "./dist/*.mjs"
-    }
+    },
+    "./dist/*": "./dist/*",
+    "./types/*": "./types/*"
   },
   "files": [
     "dist",
