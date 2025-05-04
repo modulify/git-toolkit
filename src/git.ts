@@ -23,7 +23,7 @@ export class GitCommander {
     return this.sh.cwd
   }
 
-  /** Add files to git index. */
+  /** Add files to a git index. */
   async add (files: string[]) {
     await this.exec('add', ['--', ...files])
   }
