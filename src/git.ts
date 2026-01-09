@@ -28,7 +28,7 @@ export class GitCommander {
     await this.exec('add', ['--', ...files])
   }
 
-  /** Check file is ignored via .gitignore. */
+  /** Check a file is ignored via .gitignore. */
   async checkIgnore(file: string) {
     try {
       return Boolean(await this.exec('check-ignore', ['--', file]))
