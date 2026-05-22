@@ -50,7 +50,7 @@
       "optional": true
     }
   },
-  "packageManager": "yarn@4.6.0",
+  "packageManager": "yarn@4.15.0",
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@types/node": "^20.17.19",
