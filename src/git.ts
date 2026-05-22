@@ -12,6 +12,9 @@ import type { SpawnOptionsWithoutStdio } from 'node:child_process'
 import { AsyncStream } from '@/stream'
 import { Runner } from './shell'
 
+const orders = ['author-date', 'date', 'topo']
+const decorations = ['short', 'full', 'auto', 'no']
+
 export class GitCommander {
   private readonly sh: Runner
 
@@ -61,6 +64,10 @@ export class GitCommander {
       color = true,
       decorate,
     } = options
+    assertSafeRevision(from, 'from')
+    assertSafeRevision(to, 'to')
+    assertOrders(order)
+    assertDecoration(decorate)
 
     return this.run('log', [
       ...(options.format ? [`--format=${options.format}`] : []),
@@ -82,6 +89,8 @@ export class GitCommander {
   }
 
   async revParse (rev: string, options: GitRevParseOptions = {}) {
+    assertSafeRevision(rev, 'rev')
+
     return await this.exec('rev-parse', [
       ...(options.abbrevRef ? ['--abbrev-ref'] : []),
       ...(options.verify ? ['--verify'] : []),
@@ -90,6 +99,8 @@ export class GitCommander {
   }
 
   async show (rev: string, path: string) {
+    assertSafeRevision(rev, 'rev')
+
     try {
       return await this.exec('show', [`${rev}:${path}`])
     } catch (e) {
@@ -191,4 +202,28 @@ function arraify<T>(value: T | T[]) {
 
 function trim (value: unknown): string {
   return String(value).trim()
+}
+
+function assertSafeRevision(value: string, name: string) {
+  if (value.startsWith('-')) {
+    throw new Error(`${name} must not start with '-'`)
+  }
+}
+
+function assertOrders(order: unknown[]) {
+  for (const value of order) {
+    if (!orders.includes(value as never)) {
+      throw new Error(`order must be one of: ${orders.join(', ')}`)
+    }
+  }
+}
+
+function assertDecoration(decorate: unknown) {
+  if (typeof decorate === 'boolean' || decorate === undefined) {
+    return
+  }
+
+  if (!decorations.includes(decorate as never)) {
+    throw new Error(`decorate must be boolean or one of: ${decorations.join(', ')}`)
+  }
 }

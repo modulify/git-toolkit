@@ -113,6 +113,22 @@ describe('Client', () => {
       expect(commits).toHaveLength(19)
     })
 
+    it('rejects option-like `options.from` revisions', async () => {
+      const output = resolve(cwd, 'commits-from-output')
+
+      await expect(async () => await git.commits({ from: `--output=${output}` }).arraify())
+        .rejects.toThrow('from must not start with')
+      expect(fs.existsSync(output)).toBe(false)
+    })
+
+    it('rejects option-like `options.to` revisions', async () => {
+      const output = resolve(cwd, 'commits-to-output')
+
+      await expect(async () => await git.commits({ to: `--output=${output}` }).arraify())
+        .rejects.toThrow('to must not start with')
+      expect(fs.existsSync(output)).toBe(false)
+    })
+
     it('honours `options.format`', async () => {
       const commits = await git.commits({ format: 'what%n%B' }).arraify()
 
@@ -193,6 +209,10 @@ describe('Client', () => {
       await expect(git.cmd.revParse('v20.0.0', { verify: true })).rejects.toThrow()
     })
 
+    it('rejects option-like rev-parse revisions', async () => {
+      await expect(git.cmd.revParse('--output=/tmp/rev-parse-output')).rejects.toThrow('rev must not start with')
+    })
+
     it('adds, commits, and shows files under specified rev', async () => {
       const __manifest = resolve(cwd, 'package.json')
 
@@ -255,6 +275,13 @@ describe('Client', () => {
       )
 
       await expect(git.cmd.show('HEAD', 'non-existent.txt')).rejects.toThrow()
+    })
+
+    it('rejects option-like show revisions', async () => {
+      const output = resolve(cwd, 'show-output')
+
+      await expect(git.cmd.show(`--output=${output}`, 'package.json')).rejects.toThrow('rev must not start with')
+      expect(fs.existsSync(output)).toBe(false)
     })
 
     it('checks if file is ignored', async () => {
@@ -329,6 +356,22 @@ describe('Client', () => {
           args: ['tag', '-s', '--', 'v1.2.3'],
         },
       ])
+    })
+
+    it('rejects runtime-invalid log order values before spawning git', () => {
+      const sh = new FakeRunner()
+      const cmd = new GitCommander({ sh: sh as never })
+
+      expect(() => cmd.log({ order: ['output=/tmp/git-output' as never] })).toThrow('order must be one of')
+      expect(sh.commands).toEqual([])
+    })
+
+    it('rejects runtime-invalid log decorate values before spawning git', () => {
+      const sh = new FakeRunner()
+      const cmd = new GitCommander({ sh: sh as never })
+
+      expect(() => cmd.log({ decorate: 'output=/tmp/git-output' as never })).toThrow('decorate must be boolean')
+      expect(sh.commands).toEqual([])
     })
   })
 })
