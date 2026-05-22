@@ -32,7 +32,7 @@ npm install @modulify/git-toolkit
 GitCommander:
 
 ```typescript
-import { GitCommander } from '@modulify/git-client'
+import { GitCommander } from '@modulify/git-toolkit'
 
 const git = new GitCommander()
 
@@ -45,7 +45,7 @@ await git.push('main')
 GitClient:
 
 ```typescript
-import { GitClient } from '@modulify/git-client'
+import { GitClient } from '@modulify/git-toolkit'
 
 const git = new GitClient()
 
