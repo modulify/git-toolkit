@@ -9,6 +9,10 @@ describe('Runner', () => {
       expect(await runner.exec('echo', ['hello'])).toBe('hello\n')
     })
 
+    it('uses empty args by default', async () => {
+      expect(await runner.exec('echo')).toBe('\n')
+    })
+
     it('skips empty args', async () => {
       expect(await runner.exec('echo', ['hello', ''])).toBe('hello\n')
       expect(await runner.exec('echo', ['hello', null])).toBe('hello\n')

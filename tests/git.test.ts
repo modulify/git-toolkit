@@ -1,4 +1,9 @@
-import { GitClient } from '@/git'
+import {
+  GitClient,
+  GitCommander,
+} from '@/git'
+
+import { TextStream } from '@/stream'
 
 import {
   afterAll,
@@ -18,6 +23,7 @@ import {
 import { randomUUID } from 'node:crypto'
 
 import fs from 'fs'
+import { Readable } from 'stream'
 
 const __temporary = join(__dirname, 'tmp')
 
@@ -154,6 +160,13 @@ describe('Client', () => {
 
       expect(await git.commits({ since: now }).arraify()).toEqual(['chore: hello\n\n'])
     })
+
+    it('filters ignored commits', async () => {
+      exec('git commit -m "docs: ignored commit" --allow-empty --no-gpg-sign')
+
+      expect(await git.commits({ from: 'HEAD~1', ignore: /^docs:/ }).arraify()).toEqual([])
+      expect(await git.commits({ from: 'HEAD~1', ignore: /^feat:/ }).arraify()).toEqual(['docs: ignored commit\n\n'])
+    })
   })
 
   describe('tags', () => {
@@ -251,5 +264,88 @@ describe('Client', () => {
       expect(await git.cmd.checkIgnore('package.json')).toBe(false)
       expect(await git.cmd.checkIgnore(resolve(cwd, '..', 'package.json'))).toBe(false)
     })
+
+    it('exposes default command cwd', () => {
+      expect(new GitCommander().cwd).toBe(process.cwd())
+      expect(new GitClient().cmd.cwd).toBe(process.cwd())
+    })
+
+    it('passes less common command options to git', async () => {
+      const sh = new FakeRunner()
+      const cmd = new GitCommander({ sh: sh as never })
+
+      await cmd.commit({
+        message: 'signed commit',
+        verify: false,
+        sign: true,
+        files: ['package.json'],
+      })
+
+      cmd.log()
+      cmd.log({
+        since: '2024-01-01',
+        reverse: true,
+        merges: true,
+        decorate: 'short',
+        path: 'src',
+      })
+      cmd.log({ merges: false })
+
+      await cmd.revParse('HEAD')
+      await cmd.push('main')
+      await cmd.tag({
+        name: 'v1.2.3',
+        sign: true,
+        message: 'ignored for signed tags',
+      })
+
+      expect(sh.commands).toEqual([
+        {
+          cmd: 'git',
+          args: ['commit', '--no-verify', '-S', '-m', 'signed commit', '--', 'package.json'],
+        },
+        {
+          cmd: 'git',
+          args: ['log', 'HEAD'],
+        },
+        {
+          cmd: 'git',
+          args: ['log', '--since=2024-01-01', '--reverse', '--merges', '--decorate=short', 'HEAD', '--', 'src'],
+        },
+        {
+          cmd: 'git',
+          args: ['log', '--no-merges', 'HEAD'],
+        },
+        {
+          cmd: 'git',
+          args: ['rev-parse', 'HEAD'],
+        },
+        {
+          cmd: 'git',
+          args: ['push', '--follow-tags', 'origin', '--', 'main'],
+        },
+        {
+          cmd: 'git',
+          args: ['tag', '-s', '--', 'v1.2.3'],
+        },
+      ])
+    })
   })
 })
+
+class FakeRunner {
+  readonly cwd = '/fake/project'
+  readonly commands: Array<{ cmd: string, args: unknown[] }> = []
+
+  async exec(cmd: string, args: unknown[]) {
+    this.commands.push({ cmd, args })
+
+    return ''
+  }
+
+  run(cmd: string, args: unknown[]) {
+    this.commands.push({ cmd, args })
+
+    return new TextStream(Readable.from([]))
+  }
+}

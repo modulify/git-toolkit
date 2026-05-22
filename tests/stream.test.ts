@@ -43,4 +43,10 @@ describe('TextStream', () => {
 
     expect(await text.split(' ').arraify()).toEqual(['1', '2', '3', '4', '5', '6'])
   })
+
+  it('returns buffered text when separator is missing', async () => {
+    const text = new TextStream(Readable.from(['hello', ' world']))
+
+    expect(await text.split(',').arraify()).toEqual(['hello world'])
+  })
 })

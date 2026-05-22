@@ -55,7 +55,7 @@ export class TextStream extends AsyncStream<string | Buffer> {
 
         if (buffer.includes(separator)) {
           parts = buffer.split(separator)
-          buffer = parts.pop() ?? ''
+          buffer = parts.pop() as string
 
           yield* parts
         }
