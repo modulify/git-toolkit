@@ -45,6 +45,23 @@ describe('Runner', () => {
       await expect(runner.run('unknown', ['unknown']).stringify()).rejects.toThrow()
     })
 
+    it('terminates child process after first chunk is read', async () => {
+      let pid: number | undefined
+
+      try {
+        const first = String(await runner.run('sh', ['-c', 'printf "$$ ready\\n"; exec sleep 60']).first())
+
+        pid = Number(first.split(' ')[0])
+
+        expect(first).toContain('ready\n')
+        await expectProcessToExit(pid)
+      } finally {
+        if (pid && isProcessRunning(pid)) {
+          process.kill(pid)
+        }
+      }
+    })
+
     it.each([
       10,
       100,
@@ -67,3 +84,27 @@ describe('Runner', () => {
     })
   })
 })
+
+function isProcessRunning(pid: number) {
+  try {
+    process.kill(pid, 0)
+
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function expectProcessToExit(pid: number) {
+  for (let i = 0; i < 20; i++) {
+    if (!isProcessRunning(pid)) {
+      expect(isProcessRunning(pid)).toBe(false)
+
+      return
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
+
+  expect(isProcessRunning(pid)).toBe(false)
+}

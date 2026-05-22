@@ -19,6 +19,22 @@ describe('AsyncStream', () => {
 
     expect(await stream.first()).toEqual(null)
   })
+
+  it('closes upstream iterator after first element', async () => {
+    let closed = false
+
+    const stream = new AsyncStream((async function* () {
+      try {
+        yield 'first'
+        yield 'second'
+      } finally {
+        closed = true
+      }
+    })())
+
+    expect(await stream.first()).toEqual('first')
+    expect(closed).toBe(true)
+  })
 })
 
 describe('TextStream', () => {

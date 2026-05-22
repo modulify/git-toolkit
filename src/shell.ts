@@ -27,6 +27,7 @@ export class Runner {
         ...options,
       })
 
+      let closed = false
       const mayEndWithError = new Promise<Error | null>((resolve) => {
         let stderr = ''
         let error: Error | null = null
@@ -34,6 +35,8 @@ export class Runner {
         child.stderr.on('data', (chunk: Buffer) => stderr += String(chunk))
         child.on('error', (e: Error) => error = e)
         child.on('close', () => {
+          closed = true
+
           if (stderr) {
             error = new Error(stderr)
           }
@@ -41,12 +44,29 @@ export class Runner {
           resolve(error)
         })
       })
+      const stdout = (child.stdout as AsyncIterable<Buffer>)[Symbol.asyncIterator]()
 
-      yield* child.stdout as AsyncIterable<Buffer>
+      try {
+        while (true) {
+          const next = await stdout.next()
+          if (next.done) {
+            break
+          }
 
-      const error = await mayEndWithError
-      if (error) {
-        throw error
+          yield next.value
+        }
+
+        const error = await mayEndWithError
+        if (error) {
+          throw error
+        }
+      } finally {
+        if (!closed) {
+          child.kill()
+          child.stdout.destroy()
+          child.stderr.destroy()
+          child.unref()
+        }
       }
     })())
   }

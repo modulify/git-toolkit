@@ -7,9 +7,18 @@ export class AsyncStream<T> implements AsyncIterable<T> {
 
   async first(): Promise<T | null> {
     const iterator = this[Symbol.asyncIterator]()
-    const first = await iterator.next()
+    let done = false
 
-    return first.done ? null : first.value
+    try {
+      const first = await iterator.next()
+      done = Boolean(first.done)
+
+      return first.done ? null : first.value
+    } finally {
+      if (!done) {
+        await iterator.return?.()
+      }
+    }
   }
 
   async arraify(): Promise<T[]> {
