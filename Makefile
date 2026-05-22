@@ -20,7 +20,7 @@ build: pnp ## Creates a dist catalogue with library build
 .PHONY: eslint
 eslint: pnp ## Runs eslint
 	$(TARGET_HEADER)
-	$(YARN) lint
+	$(YARN) eslint
 
 .PHONY: test
 test: pnp ## Runs autotests
