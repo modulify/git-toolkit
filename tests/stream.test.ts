@@ -35,6 +35,18 @@ describe('AsyncStream', () => {
     expect(await stream.first()).toEqual('first')
     expect(closed).toBe(true)
   })
+
+  it('enforces max items when collecting stream into array', async () => {
+    const stream = new AsyncStream(Readable.from(['1', '2']))
+
+    await expect(stream.arraify({ maxItems: 1 })).rejects.toThrow('maxItems limit')
+  })
+
+  it('enforces max buffer when collecting stream into string', async () => {
+    const stream = new AsyncStream(Readable.from(['hello']))
+
+    await expect(stream.stringify({ maxBuffer: 3 })).rejects.toThrow('maxBuffer limit')
+  })
 })
 
 describe('TextStream', () => {
@@ -48,5 +60,11 @@ describe('TextStream', () => {
     const text = new TextStream(Readable.from(['hello', ' world']))
 
     expect(await text.split(',').arraify()).toEqual(['hello world'])
+  })
+
+  it('enforces max buffer while splitting stream', async () => {
+    const text = new TextStream(Readable.from(['hello', ' world']))
+
+    await expect(text.split(',', { maxBuffer: 3 }).arraify()).rejects.toThrow('split buffer')
   })
 })

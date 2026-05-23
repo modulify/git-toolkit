@@ -1,3 +1,18 @@
+export interface ArraifyOptions {
+  maxItems?: number;
+}
+
+export interface StringifyOptions {
+  maxBuffer?: number;
+}
+
+export interface SplitOptions {
+  maxBuffer?: number;
+}
+
+const DEFAULT_MAX_ITEMS = 10000
+const DEFAULT_MAX_BUFFER = 10 * 1024 * 1024
+
 export class AsyncStream<T> implements AsyncIterable<T> {
   constructor(private iterable: AsyncIterable<T>) {}
 
@@ -21,21 +36,33 @@ export class AsyncStream<T> implements AsyncIterable<T> {
     }
   }
 
-  async arraify(): Promise<T[]> {
+  async arraify(options: ArraifyOptions = {}): Promise<T[]> {
+    const maxItems = options.maxItems ?? DEFAULT_MAX_ITEMS
     const array: T[] = []
 
     for await (const item of this.iterable) {
+      if (array.length >= maxItems) {
+        throw new Error(`stream output exceeded maxItems limit (${maxItems})`)
+      }
+
       array.push(item)
     }
 
     return array
   }
 
-  async stringify(): Promise<string> {
+  async stringify(options: StringifyOptions = {}): Promise<string> {
+    const maxBuffer = options.maxBuffer ?? DEFAULT_MAX_BUFFER
     let string = ''
 
     for await (const chunk of this.iterable) {
-      string += String(chunk)
+      const next = String(chunk)
+
+      if (string.length + next.length > maxBuffer) {
+        throw new Error(`stream output exceeded maxBuffer limit (${maxBuffer})`)
+      }
+
+      string += next
     }
 
     return string
@@ -43,8 +70,9 @@ export class AsyncStream<T> implements AsyncIterable<T> {
 }
 
 export class TextStream extends AsyncStream<string | Buffer> {
-  split (separator: string): TextStream {
+  split (separator: string, options: SplitOptions = {}): TextStream {
     const stream = this as TextStream
+    const maxBuffer = options.maxBuffer ?? DEFAULT_MAX_BUFFER
 
     return new TextStream((async function* () {
       let parts: string[]
@@ -52,6 +80,10 @@ export class TextStream extends AsyncStream<string | Buffer> {
 
       for await (const chunk of stream) {
         buffer += String(chunk)
+
+        if (buffer.length > maxBuffer) {
+          throw new Error(`stream split buffer exceeded maxBuffer limit (${maxBuffer})`)
+        }
 
         if (buffer.includes(separator)) {
           parts = buffer.split(separator)

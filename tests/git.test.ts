@@ -373,6 +373,48 @@ describe('Client', () => {
       expect(() => cmd.log({ decorate: 'output=/tmp/git-output' as never })).toThrow('decorate must be boolean')
       expect(sh.commands).toEqual([])
     })
+
+    it('rejects runtime-invalid log option types before spawning git', () => {
+      const sh = new FakeRunner()
+      const cmd = new GitCommander({ sh: sh as never })
+
+      expect(() => cmd.log({ from: 1 as never })).toThrow('from must be a string')
+      expect(() => cmd.log({ path: [1] as never })).toThrow('path[0] must be a string')
+      expect(() => cmd.log({ order: 'date' as never })).toThrow('order must be an array')
+      expect(() => cmd.log({ since: new Date('invalid') })).toThrow('since must be a string or valid Date')
+      expect(sh.commands).toEqual([])
+    })
+
+    it('rejects runtime-invalid command values before spawning git', async () => {
+      const sh = new FakeRunner()
+      const cmd = new GitCommander({ sh: sh as never })
+
+      await expect(cmd.add('package.json' as never)).rejects.toThrow('files must be an array')
+      await expect(cmd.add([1] as never)).rejects.toThrow('files[0] must be a string')
+      await expect(cmd.checkIgnore(1 as never)).rejects.toThrow('file must be a string')
+      await expect(cmd.commit(null as never)).rejects.toThrow('options must be an object')
+      await expect(cmd.commit({ message: 1 } as never)).rejects.toThrow('message must be a string')
+      await expect(cmd.commit({ message: 'commit', sign: 'yes' } as never)).rejects.toThrow('sign must be a boolean')
+      await expect(cmd.push(1 as never)).rejects.toThrow('branch must be a string')
+      await expect(cmd.revParse(1 as never)).rejects.toThrow('rev must be a string')
+      await expect(cmd.revParse('HEAD', { verify: 'yes' } as never)).rejects.toThrow('verify must be a boolean')
+      await expect(cmd.show('HEAD', 1 as never)).rejects.toThrow('path must be a string')
+      await expect(cmd.tag({ name: 1 } as never)).rejects.toThrow('name must be a string')
+      await expect(cmd.tag({ name: 'v1.2.3', message: 1 } as never)).rejects.toThrow('message must be a string')
+
+      expect(sh.commands).toEqual([])
+    })
+
+    it('rejects runtime-invalid commits options before spawning git', async () => {
+      const sh = new FakeRunner()
+      const client = new GitClient({ sh: sh as never })
+
+      expect(() => client.commits(null as never)).toThrow('options must be an object')
+      expect(() => client.commits({ ignore: 'docs' as never })).toThrow('ignore must be a RegExp')
+      expect(() => client.commits({ parser: 'parse' as never })).toThrow('parser must be a function')
+
+      expect(sh.commands).toEqual([])
+    })
   })
 })
 

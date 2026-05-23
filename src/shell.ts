@@ -5,6 +5,14 @@ import { TextStream } from '@/stream'
 
 import { spawn } from 'node:child_process'
 
+export interface RunnerOptions extends Omit<SpawnOptionsWithoutStdio, 'shell'> {
+  shell?: false;
+  maxStdoutBuffer?: number;
+  maxStderrBuffer?: number;
+}
+
+const DEFAULT_MAX_STDERR_BUFFER = 1024 * 1024
+
 export class Runner {
   readonly cwd: string
 
@@ -13,18 +21,31 @@ export class Runner {
   }
 
   /** Executes a command in a child process & returns its output as string */
-  async exec (cmd: string, args: Arg[] = [], options: SpawnOptionsWithoutStdio = {}) {
-    return await this.run(cmd, args, options).stringify()
+  async exec (cmd: string, args: Arg[] = [], options: RunnerOptions = {}) {
+    return await this.run(cmd, args, options).stringify({
+      maxBuffer: options.maxStdoutBuffer,
+    })
   }
 
   /** Spawns a child process for a command and returns its stdout stream */
-  run (cmd: string, args: Arg[] = [], options: SpawnOptionsWithoutStdio = {}) {
+  run (cmd: string, args: Arg[] = [], options: RunnerOptions = {}) {
+    const {
+      maxStderrBuffer = DEFAULT_MAX_STDERR_BUFFER,
+      shell,
+    } = options
+    const spawnOptions: Partial<RunnerOptions> = { ...options }
+
+    delete spawnOptions.maxStdoutBuffer
+    delete spawnOptions.maxStderrBuffer
+    delete spawnOptions.shell
+
     const cwd = this.cwd
+    assertShellDisabled(shell)
 
     return new TextStream((async function* () {
       const child = spawn(cmd, filterArgs(args), {
         ...cwd && { cwd },
-        ...options,
+        ...spawnOptions,
       })
 
       let closed = false
@@ -32,12 +53,19 @@ export class Runner {
         let stderr = ''
         let error: Error | null = null
 
-        child.stderr.on('data', (chunk: Buffer) => stderr += String(chunk))
+        child.stderr.on('data', (chunk: Buffer) => {
+          stderr += String(chunk)
+
+          if (stderr.length > maxStderrBuffer && !error) {
+            error = new Error(`stderr exceeded maxStderrBuffer limit (${maxStderrBuffer})`)
+            child.kill()
+          }
+        })
         child.on('error', (e: Error) => error = e)
         child.on('close', () => {
           closed = true
 
-          if (stderr) {
+          if (stderr && !error) {
             error = new Error(stderr)
           }
 
@@ -69,6 +97,12 @@ export class Runner {
         }
       }
     })())
+  }
+}
+
+function assertShellDisabled(shell: unknown) {
+  if (shell) {
+    throw new Error('shell option is not supported')
   }
 }
 

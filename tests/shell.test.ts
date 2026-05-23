@@ -27,6 +27,20 @@ describe('Runner', () => {
     it('throws error from process', async () => {
       await expect(runner.exec('unknown', ['unknown'])).rejects.toThrow()
     })
+
+    it('rejects shell mode', async () => {
+      await expect(runner.exec('echo', ['hello'], { shell: true } as never)).rejects.toThrow('shell option is not supported')
+    })
+
+    it('does not execute shell metacharacters by default', async () => {
+      expect(await runner.exec('echo', ['hello; printf owned'])).toBe('hello; printf owned\n')
+    })
+
+    it('enforces stdout buffer limit', async () => {
+      await expect(runner.exec('node', ['-e', 'process.stdout.write("x".repeat(20))'], {
+        maxStdoutBuffer: 5,
+      })).rejects.toThrow('maxBuffer limit')
+    })
   })
 
   describe('run', () => {
@@ -47,6 +61,12 @@ describe('Runner', () => {
 
     it('throws error from process', async () => {
       await expect(runner.run('unknown', ['unknown']).stringify()).rejects.toThrow()
+    })
+
+    it('enforces stderr buffer limit', async () => {
+      await expect(runner.run('node', ['-e', 'process.stderr.write("x".repeat(20))'], {
+        maxStderrBuffer: 5,
+      }).stringify()).rejects.toThrow('maxStderrBuffer limit')
     })
 
     it('terminates child process after first chunk is read', async () => {

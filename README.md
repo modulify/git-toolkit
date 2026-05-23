@@ -91,6 +91,8 @@ constructor(options: { cwd?: string, sh?: Runner } = {})
 
 3. `commit(options: GitCommitOptions): Promise<void>`
     - Commits changes with the specified options.
+    - Runs Git hooks by default. Use `verify: false` to pass `--no-verify`
+      when operating on repositories where hooks must not run.
     - **parameters**:
         - `options`: _(GitCommitOptions)_ - Object with commit options. Includes:
             - `message`: _(string)_ - Commit message.
@@ -129,18 +131,28 @@ constructor(options: { cwd?: string, sh?: Runner } = {})
     - **parameters**:
         - `options`: _(GitTagOptions)_ - Tagging options, including `name`, `sign`, and `message`.
 
-9. `exec(cmd: string, args: Arg[], options?: SpawnOptionsWithoutStdio): Promise<string>`
+9. `exec(cmd: string, args: Arg[], options?: RunnerOptions): Promise<string>`
     - Executes a raw Git command.
+    - `shell` mode is not supported; commands are executed with argv arrays.
     - **parameters**:
         - `cmd`: _(string)_ - The Git command to execute.
         - `args`: _(Arg[])_ - Arguments for the command.
-        - `options`: _(SpawnOptionsWithoutStdio)_ _(optional)_ - Shell execution options.
+        - `options`: _(RunnerOptions)_ _(optional)_ - Process execution options and output buffer limits.
 
-10. `run(cmd: string, args: Arg[], options?: SpawnOptionsWithoutStdio): TextStream`
+10. `run(cmd: string, args: Arg[], options?: RunnerOptions): TextStream`
     - Runs a Git command (lower-level than `exec()`).
+    - `shell` mode is not supported; commands are executed with argv arrays.
     - **parameters**:
         - `cmd`, `args`, `options`: Same as `exec()`.
     - **returns**: _(TextStream)_ - The command's output stream, where each chunk is string.
+
+### Security Notes
+
+- High-level Git options are runtime-validated before spawning Git.
+- Revision-like values such as `from`, `to`, and `rev` must not start with `-`.
+- `Runner` rejects `shell` mode to avoid turning argv arrays into shell commands.
+- Full-output helpers enforce configurable buffer limits to avoid unbounded memory use.
+- `commit()` may run Git hooks unless `verify: false` is used.
 
 ### `GitClient`
 
