@@ -1,0 +1,37 @@
+name: Run Tests
+description: Run project tests and optionally upload coverage reports
+
+inputs:
+  artifact-name:
+    description: Coverage artifact name
+    required: false
+    default: coverage
+  upload-coverage:
+    description: Whether to upload coverage artifacts
+    required: false
+    default: 'true'
+  codecov-token:
+    description: Codecov token
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Run tests
+      shell: bash
+      run: yarn test
+
+    - name: Upload coverage to GitHub Artifacts
+      if: inputs.upload-coverage == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: coverage/
+
+    - name: Upload coverage reports to Codecov
+      if: inputs.upload-coverage == 'true' && inputs.codecov-token != ''
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ inputs.codecov-token }}
+        file: ./coverage/lcov.info

@@ -1,0 +1,37 @@
+name: Setup Node.js
+description: Configure Node.js and Corepack for project workflows
+
+inputs:
+  node-version:
+    description: Node.js version to install
+    required: true
+  registry-url:
+    description: npm registry URL for publish-capable jobs
+    required: false
+    default: ''
+  package-manager-cache:
+    description: Whether setup-node should enable package-manager caching
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Use Node.js
+      if: inputs.registry-url == ''
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        package-manager-cache: ${{ inputs.package-manager-cache }}
+
+    - name: Use Node.js with registry
+      if: inputs.registry-url != ''
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        registry-url: ${{ inputs.registry-url }}
+        package-manager-cache: ${{ inputs.package-manager-cache }}
+
+    - name: Enable Corepack
+      shell: bash
+      run: corepack enable

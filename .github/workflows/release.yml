@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Release type
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+      prerelease:
+        description: Prerelease type
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - alpha
+          - beta
+          - rc
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: npm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Ensure stable release is running from main
+        if: ${{ inputs.prerelease == 'none' }}
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_NAME" != "main" ]; then
+            echo "Stable release is allowed only from main. Current ref: $GITHUB_REF_NAME"
+            exit 1
+          fi
+
+      - name: Setup Node.js for release
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
+        with:
+          node-version: 24
+          cache: 'false'
+
+      - name: Configure git user
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Run eslint
+        run: yarn eslint
+
+      - name: Run release tests
+        uses: ./.github/actions/test
+        with:
+          upload-coverage: 'false'
+
+      - name: Run conventional release
+        env:
+          RELEASE_TYPE: ${{ inputs.release }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        shell: bash
+        run: |
+          args=(--verbose --tags)
+
+          if [ "$RELEASE_TYPE" != "auto" ]; then
+            args+=(--release-as "$RELEASE_TYPE")
+          fi
+
+          if [ "$PRERELEASE" != "none" ]; then
+            args+=(--prerelease "$PRERELEASE")
+          fi
+
+          npx --yes --package @modulify/conventional-release@0.1.2 conventional-release "${args[@]}"
+
+      - name: Build package
+        run: yarn build
+
+      - name: Push release commit and tags
+        shell: bash
+        run: git push origin "HEAD:${GITHUB_REF_NAME}" --follow-tags
+
+      - name: Publish package to npm
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag=latest
+
+          if [[ "$version" == *-* ]]; then
+            tag="${version#*-}"
+            tag="${tag%%.*}"
+          fi
+
+          npm publish --access public --tag "$tag"

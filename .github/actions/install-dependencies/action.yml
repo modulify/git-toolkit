@@ -1,0 +1,36 @@
+name: Install Dependencies
+description: Configure Yarn, restore dependency cache, and install dependencies
+
+inputs:
+  node-version:
+    description: Node.js version used in the cache key
+    required: true
+  cache:
+    description: Whether to restore and save the Yarn cache
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Yarn configuration
+      shell: bash
+      run: |
+        make .yarnrc.yml
+
+        if ! grep -q '^enableGlobalCache:' .yarnrc.yml; then
+          echo "enableGlobalCache: false" >> .yarnrc.yml
+        fi
+
+    - name: Cache dependencies
+      if: inputs.cache == 'true'
+      uses: actions/cache@v5
+      with:
+        path: .yarn
+        key: ${{ runner.os }}-node-${{ inputs.node-version }}-yarn-${{ hashFiles('yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ inputs.node-version }}-yarn-
+
+    - name: Install dependencies
+      shell: bash
+      run: yarn install --immutable
