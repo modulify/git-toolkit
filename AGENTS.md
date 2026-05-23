@@ -77,7 +77,11 @@ make test
 ### Coverage
 - Run tests with coverage:
 ```bash
-make test-coverage
+make test
+```
+- Generate an HTML coverage report:
+```bash
+make test report=html
 ```
 - Coverage is expected to stay at 100% for statements, branches, functions,
   and lines unless the user explicitly accepts a different target.

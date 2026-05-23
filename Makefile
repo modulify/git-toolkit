@@ -32,14 +32,13 @@ actionlint: .env ## Runs actionlint for GitHub Actions workflows
 	docker compose run --rm actionlint
 
 .PHONY: test
-test: pnp ## Runs autotests
+test: pnp ## Runs autotests with coverage
 	$(TARGET_HEADER)
+ifeq ($(report),html)
+	$(YARN) test --reporter=html --outputFile.html=./reports/html/report.html
+else
 	$(YARN) test
-
-.PHONY: test-coverage
-test-coverage: pnp ## Runs autotests with --coverage
-	$(TARGET_HEADER)
-	$(YARN) test:coverage
+endif
 
 .PHONY: help
 help: ## Calls recipes list

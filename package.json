@@ -68,9 +68,7 @@
   "scripts": {
     "build": "vite build",
     "eslint": "eslint src tests types",
-    "test": "vitest --run",
-    "test:coverage": "vitest run --coverage",
-    "test:coverage:html": "vitest run --coverage --reporter=html --outputFile.html=./reports/html/report.html"
+    "test": "vitest run --coverage"
   },
   "author": {
     "name": "modulify",
