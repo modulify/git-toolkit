@@ -7,6 +7,51 @@ on:
     branches: [ "main" ]
 
 jobs:
+  security:
+    runs-on: ubuntu-22.04
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+    steps:
+    - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
+      uses: actions/checkout@v4
+
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+
+    - name: Yarn configuration
+      run: |
+        make .yarnrc.yml
+        echo "enableGlobalCache: false" >> .yarnrc.yml
+
+    - name: Cache dependencies
+      id: cache-deps
+      uses: actions/cache@v4
+      with:
+        path: .yarn
+        key: ${{ runner.OS }}-node-22.x-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.OS }}-node-22.x-yarn-
+
+    - name: Install dependencies
+      run: |
+        yarn install
+
+    - name: Require Snyk token
+      if: env.SNYK_TOKEN == '' && github.event_name != 'pull_request'
+      run: |
+        echo "SNYK_TOKEN is required for Snyk dependency scan"
+        exit 1
+
+    - name: Run Snyk dependency scan
+      if: env.SNYK_TOKEN != ''
+      uses: snyk/actions/node@master
+      with:
+        command: test
+        args: --severity-threshold=high
+
   eslint:
     runs-on: ubuntu-22.04
 

@@ -47,6 +47,12 @@ dependency updates, and commit workflow.
 ```bash
 make .yarnrc.yml
 ```
+- Local `.env` is generated from `.env.dist` using:
+```bash
+make .env
+```
+- The `.env` file is required for Docker Compose based recipes such as
+  `make actionlint`, because it sets `COMPOSE_FILE`.
 - Install dependencies and prepare the PnP loader file with:
 ```bash
 make pnp
@@ -84,6 +90,10 @@ make build
 - Run eslint:
 ```bash
 make eslint
+```
+- Run GitHub Actions workflow linting:
+```bash
+make actionlint
 ```
 - Show available Makefile recipes:
 ```bash

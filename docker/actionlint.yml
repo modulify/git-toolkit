@@ -1,0 +1,8 @@
+services:
+  actionlint:
+    image: rhysd/actionlint:latest
+    volumes:
+      - ./:/repo
+    working_dir: /repo
+    command:
+      - -color

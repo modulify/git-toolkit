@@ -6,6 +6,10 @@ YARN=yarn
 	$(TARGET_HEADER)
 	cp .yarnrc.dist.yml .yarnrc.yml
 
+.env:  ## Generates environment configuration
+	$(TARGET_HEADER)
+	cp .env.dist .env
+
 .PHONY: pnp
 pnp: package.json yarn.lock ## Installs dependencies
 	$(TARGET_HEADER)
@@ -21,6 +25,11 @@ build: pnp ## Creates a dist catalogue with library build
 eslint: pnp ## Runs eslint
 	$(TARGET_HEADER)
 	$(YARN) eslint
+
+.PHONY: actionlint
+actionlint: .env ## Runs actionlint for GitHub Actions workflows
+	$(TARGET_HEADER)
+	docker compose run --rm actionlint
 
 .PHONY: test
 test: pnp ## Runs autotests
